@@ -47,6 +47,15 @@
       animation: laserScan 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
     }
 
+    /* Shutter Flash Animation for Camera Capture */
+    @keyframes shutterFlash {
+      0% { opacity: 0.95; }
+      100% { opacity: 0; }
+    }
+    .camera-flash {
+      animation: shutterFlash 0.35s ease-out forwards;
+    }
+
     /* Continuous Border Glow Loop */
     @keyframes movingBorder {
       0% { border-color: rgba(0, 168, 255, 0.4); box-shadow: 0 0 12px rgba(0, 168, 255, 0.2); }
@@ -310,8 +319,11 @@
             <!-- Canvas snapshot fallback/processing -->
             <canvas id="snapshotCanvas" class="hidden"></canvas>
 
+            <!-- Shutter Flash Overlay Effect -->
+            <div id="shutterFlashOverlay" class="absolute inset-0 bg-white pointer-events-none opacity-0 z-20"></div>
+
             <!-- Face Oval Target Overlay -->
-            <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+            <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center z-10">
               <!-- Oval Target Ring -->
               <div class="w-48 h-64 rounded-[50%] border-2 border-dashed border-sky-400/80 shadow-[0_0_20px_rgba(0,168,255,0.35)] relative flex items-center justify-center">
                 <!-- Laser Scan Line -->
@@ -327,7 +339,7 @@
             </div>
 
             <!-- Fallback Mock / Offline Overlay -->
-            <div id="cameraFallbackOverlay" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center">
+            <div id="cameraFallbackOverlay" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center z-30">
               <i class="fa-solid fa-camera-slash text-3xl text-amber-400 mb-2"></i>
               <p class="text-xs font-semibold text-slate-200">Kamera Belum Diizinkan</p>
               <p class="text-[11px] text-slate-400 mt-1 max-w-[200px]">Aktifkan izin kamera smartphone atau gunakan mode simulasi presensi instan.</p>
@@ -892,7 +904,17 @@
             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
             body: JSON.stringify(payload)
           });
-          const result = await response.json();
+          const rawText = await response.text();
+          let result;
+          try {
+            result = JSON.parse(rawText);
+          } catch (jsonErr) {
+            console.error('[FaceLog] Respon bukan JSON:', rawText);
+            if (rawText.includes('ServiceLogin') || rawText.includes('accounts.google.com')) {
+              return { success: false, message: 'Izin Google Web App perlu disetel ke "Anyone" pada Deployment.' };
+            }
+            return { success: false, message: 'Respon server: ' + rawText.substring(0, 120) };
+          }
           return result;
         } catch (err) {
           console.warn(`[FaceLog] Gagal memanggil endpoint GAS (${action}):`, err);
@@ -1133,16 +1155,31 @@
 
       try {
         if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-          const stream = await navigator.mediaDevices.getUserMedia({
+          // Konfigurasi constraints ramah Android & iOS
+          const constraints = {
             video: {
-              facingMode: 'user',
-              width: { ideal: 640 },
-              height: { ideal: 640 }
+              facingMode: { ideal: 'user' },
+              width: { min: 320, ideal: 640, max: 1280 },
+              height: { min: 240, ideal: 640, max: 1280 }
             },
             audio: false
-          });
+          };
+
+          let stream;
+          try {
+            stream = await navigator.mediaDevices.getUserMedia(constraints);
+          } catch (firstErr) {
+            // Fallback sederhana jika format ideal ditolak smartphone
+            stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+          }
+
           AppState.webcamStream = stream;
           video.srcObject = stream;
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('autoplay', 'true');
+          video.setAttribute('muted', 'true');
+          await video.play().catch(e => console.log('Autoplay warning:', e));
+
           if (fallback) fallback.classList.add('hidden');
           if (statusText) statusText.textContent = 'Kamera Wajah Aktif';
           if (warningBanner) warningBanner.classList.add('hidden');
@@ -1214,25 +1251,45 @@
         return;
       }
 
+      // Animasi Shutter Flash & Haptic Feedback
+      const flashEl = document.getElementById('shutterFlashOverlay');
+      if (flashEl) {
+        flashEl.classList.remove('camera-flash');
+        void flashEl.offsetWidth; // Trigger reflow
+        flashEl.classList.add('camera-flash');
+      }
+      if (navigator.vibrate) {
+        navigator.vibrate([60, 40, 60]);
+      }
+
       const video = document.getElementById('webcamVideo');
       const canvas = document.getElementById('snapshotCanvas');
       let snapshotDataUrl = '';
 
-      if (AppState.webcamStream && video.videoWidth > 0) {
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
+      const isVideoActive = AppState.webcamStream && video.videoWidth > 0 && !video.paused;
+
+      if (isVideoActive) {
+        // Kompresi resolusi ke 260x260 thumbnail agar Base64 berukuran ~8-12KB (Aman di bawah batas sel Google Sheets 50.000 karakter)
+        const targetW = 260;
+        const targetH = Math.round(targetW * (video.videoHeight / video.videoWidth)) || 260;
+        canvas.width = targetW;
+        canvas.height = targetH;
         const ctx = canvas.getContext('2d');
-        ctx.translate(canvas.width, 0);
+
+        // Mirroring agar wajah searah dengan preview kamera depan
+        ctx.translate(targetW, 0);
         ctx.scale(-1, 1);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        ctx.drawImage(video, 0, 0, targetW, targetH);
+
+        // Kualitas JPEG 0.65 menghasilkan foto jelas dan ukuran ringan
+        snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.65);
       } else {
-        snapshotDataUrl = user.fotoReferensi;
+        snapshotDataUrl = user.fotoReferensi || 'https://placehold.co/150x150/1e293b/38bdf8?text=Wajah';
       }
 
       const btnScan = document.getElementById('btnCaptureScan');
       btnScan.disabled = true;
-      btnScan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>MEMVERIFIKASI KE GOOGLE SHEETS...';
+      btnScan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>MENYIMPAN KE GOOGLE SHEETS...';
 
       const payload = {
         userId: user.userId,
@@ -1250,6 +1307,7 @@
         if (res && res.success) {
           displaySuccessModal(res.nama, res.jam, res.status, snapshotDataUrl);
           await loadAttendanceLogs();
+          showToast(res.message || 'Presensi berhasil dicatat!', 'success');
         } else {
           showToast(res ? res.message : 'Presensi gagal dicatat', 'error');
         }
@@ -1334,52 +1392,76 @@
       initScrollAnimations();
     }
 
-    async function checkAdminSession() {
+    function checkAdminSession() {
       if (AppState.adminToken) {
-        const res = await callBackend('verifySession', { token: AppState.adminToken });
-        if (res && res.valid) {
-          showAdminDashboard(res.session);
+        if (isGasRuntime) {
+          google.script.run
+            .withSuccessHandler(res => {
+              if (res.valid) {
+                showAdminDashboard(res.session);
+              } else {
+                hideAdminDashboard();
+              }
+            })
+            .verifySessionToken(AppState.adminToken);
         } else {
-          hideAdminDashboard();
+          // Safe Preview retains session
+          showAdminDashboard({ username: 'admin', role: 'Admin' });
         }
       } else {
         hideAdminDashboard();
       }
     }
 
-    async function handleAdminLogin(e) {
+    function handleAdminLogin(e) {
       e.preventDefault();
       const u = document.getElementById('adminUsernameInput').value.trim();
       const p = document.getElementById('adminPasswordInput').value.trim();
       const btn = document.getElementById('btnAdminSubmit');
 
       btn.disabled = true;
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i>Memverifikasi...';
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i>Verifikasi...';
 
-      try {
-        const res = await callBackend('login', { username: u, password: p });
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket text-xs mr-1"></i><span>Masuk ke Dashboard</span>';
-
-        if (res && res.success) {
-          AppState.adminToken = res.token;
-          sessionStorage.setItem('facelog_admin_token', res.token);
-          showAdminDashboard({ username: res.username, role: res.role });
-          showToast('Selamat datang Admin FaceLog.', 'success');
-        } else {
-          showToast(res ? res.message : 'Username atau password salah', 'error');
-        }
-      } catch (err) {
-        btn.disabled = false;
-        btn.innerHTML = '<span>Masuk ke Dashboard</span>';
-        showToast('Kesalahan login: ' + err.message, 'error');
+      if (isGasRuntime) {
+        google.script.run
+          .withSuccessHandler(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket text-xs mr-1"></i><span>Masuk ke Dashboard</span>';
+            if (res.success) {
+              AppState.adminToken = res.token;
+              sessionStorage.setItem('facelog_admin_token', res.token);
+              showAdminDashboard({ username: res.username, role: res.role });
+              showToast('Selamat datang Admin.', 'success');
+            } else {
+              showToast(res.message, 'error');
+            }
+          })
+          .withFailureHandler(err => {
+            btn.disabled = false;
+            btn.innerHTML = '<span>Masuk ke Dashboard</span>';
+            showToast('Kesalahan server: ' + err.message, 'error');
+          })
+          .adminLogin(u, p);
+      } else {
+        setTimeout(() => {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket text-xs mr-1"></i><span>Masuk ke Dashboard</span>';
+          if (u === 'admin' && p === '123') {
+            AppState.adminToken = 'preview-token-' + Date.now();
+            sessionStorage.setItem('facelog_admin_token', AppState.adminToken);
+            showAdminDashboard({ username: 'admin', role: 'Admin' });
+            showToast('Login Admin Safe Preview Berhasil.', 'success');
+          } else {
+            showToast('Username atau password salah (admin / 123).', 'error');
+          }
+        }, 600);
       }
     }
 
     function quickFillAdminLogin() {
       document.getElementById('adminUsernameInput').value = 'admin';
       document.getElementById('adminPasswordInput').value = '123';
-      showToast('Kredensial default admin diisi.', 'info');
+      showToast('Kredensial default diisi.', 'info');
     }
 
     function togglePasswordVisibility(inputId, iconId) {
@@ -1394,16 +1476,11 @@
       }
     }
 
-    async function showAdminDashboard(session) {
+    function showAdminDashboard(session) {
       document.getElementById('adminPreLoginCard').classList.add('hidden');
       document.getElementById('adminDashboardView').classList.remove('hidden');
       document.getElementById('adminSessionUsername').textContent = (session.username || 'admin') + ' (Admin)';
-      
-      // Sinkronkan formulir konfigurasi settings dengan endpoint aktif
-      const epInput = document.getElementById('setGasEndpointUrl');
-      if (epInput) epInput.value = AppState.gasEndpoint;
-
-      await loadAdminDashboardMetrics();
+      loadAdminDashboardMetrics();
       renderAdminUsersList();
       renderAdminCarouselList();
     }
@@ -1413,9 +1490,9 @@
       document.getElementById('adminDashboardView').classList.add('hidden');
     }
 
-    async function handleAdminLogout() {
-      if (AppState.adminToken) {
-        await callBackend('logout', { token: AppState.adminToken });
+    function handleAdminLogout() {
+      if (isGasRuntime && AppState.adminToken) {
+        google.script.run.adminLogout(AppState.adminToken);
       }
       AppState.adminToken = null;
       sessionStorage.removeItem('facelog_admin_token');
@@ -1437,24 +1514,16 @@
       if (targetBtn) targetBtn.className = 'px-3 py-1.5 rounded-xl bg-brand-600 text-white shrink-0';
     }
 
-    async function loadAdminDashboardMetrics() {
-      const res = await callBackend('getDashboard', { token: AppState.adminToken });
-      if (res && res.success && res.data) {
-        document.getElementById('kpiTotalUsers').textContent = res.data.totalUsers || AppState.users.length;
-        document.getElementById('kpiHadirToday').textContent = res.data.hadirHariIni || 0;
-        document.getElementById('kpiTepatWaktu').textContent = res.data.tepatWaktu || 0;
-        document.getElementById('kpiTerlambat').textContent = res.data.terlambat || 0;
-      } else {
-        const totalU = AppState.users.length;
-        const hadirT = AppState.attendanceLogs.length;
-        const tepatT = AppState.attendanceLogs.filter(l => l.Status === 'Tepat Waktu').length;
-        const telatT = AppState.attendanceLogs.filter(l => l.Status === 'Terlambat').length;
+    function loadAdminDashboardMetrics() {
+      const totalU = AppState.users.length;
+      const hadirT = AppState.attendanceLogs.length;
+      const tepatT = AppState.attendanceLogs.filter(l => l.Status === 'Tepat Waktu').length;
+      const telatT = AppState.attendanceLogs.filter(l => l.Status === 'Terlambat').length;
 
-        document.getElementById('kpiTotalUsers').textContent = totalU;
-        document.getElementById('kpiHadirToday').textContent = hadirT;
-        document.getElementById('kpiTepatWaktu').textContent = tepatT;
-        document.getElementById('kpiTerlambat').textContent = telatT;
-      }
+      document.getElementById('kpiTotalUsers').textContent = totalU;
+      document.getElementById('kpiHadirToday').textContent = hadirT;
+      document.getElementById('kpiTepatWaktu').textContent = tepatT;
+      document.getElementById('kpiTerlambat').textContent = telatT;
     }
 
     function renderAdminUsersList() {
@@ -1504,7 +1573,7 @@
       document.getElementById('userModal').classList.add('hidden');
     }
 
-    async function handleSaveUser(e) {
+    function handleSaveUser(e) {
       e.preventDefault();
       const id = document.getElementById('formUserId').value;
       const nama = document.getElementById('formUserNama').value.trim();
@@ -1512,30 +1581,28 @@
       const divisi = document.getElementById('formUserDivisi').value.trim();
       const foto = document.getElementById('formUserFoto').value.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
 
-      const userObj = { userId: id, nama, nip, divisi, fotoReferensi: foto, status: 'Active' };
+      const userObj = { userId: id || ('USR-' + Date.now().toString().slice(-4)), nama, nip, divisi, fotoReferensi: foto, status: 'Active' };
 
-      const res = await callBackend('saveUser', { token: AppState.adminToken, userData: userObj });
-      if (res && res.success) {
-        showToast(res.message, 'success');
+      if (id) {
+        const idx = AppState.users.findIndex(x => x.userId === id);
+        if (idx >= 0) AppState.users[idx] = userObj;
       } else {
-        showToast('Tersimpan di antrean aplikasi', 'info');
+        AppState.users.push(userObj);
       }
 
       closeUserModal();
-      await syncAllDataFromBackend();
+      populateEmployeeSelector();
       renderAdminUsersList();
       loadAdminDashboardMetrics();
+      showToast('Data karyawan berhasil disimpan.', 'success');
     }
 
-    async function deleteUserPrompt(userId) {
-      const res = await callBackend('deleteUser', { token: AppState.adminToken, userId });
-      if (res && res.success) {
-        showToast(res.message, 'info');
-      }
+    function deleteUserPrompt(userId) {
       AppState.users = AppState.users.filter(x => x.userId !== userId);
       populateEmployeeSelector();
       renderAdminUsersList();
       loadAdminDashboardMetrics();
+      showToast('Karyawan dihapus.', 'info');
     }
 
     function editUser(userId) {
@@ -1547,7 +1614,7 @@
       if (!container) return;
       container.innerHTML = '';
 
-      AppState.carouselSlides.forEach(slide => {
+      AppState.carouselSlides.forEach((slide, idx) => {
         const card = document.createElement('div');
         card.className = 'p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs';
         card.innerHTML = `
@@ -1614,7 +1681,7 @@
       }
     }
 
-    async function handleSaveCarousel(e) {
+    function handleSaveCarousel(e) {
       e.preventDefault();
       const id = document.getElementById('formCarouselId').value;
       const srcType = document.getElementById('formCarouselSource').value;
@@ -1629,46 +1696,45 @@
         return;
       }
 
-      const slideObj = { id: id, imageSource: srcType, imageUrl: imgUrl, title, description: desc, order, status };
-      const res = await callBackend('saveSlide', { token: AppState.adminToken, slideData: slideObj });
-      if (res && res.success) {
-        showToast(res.message, 'success');
+      const slideObj = { id: id || String(Date.now()), imageSource: srcType, imageUrl: imgUrl, title, description: desc, order, status };
+
+      if (id) {
+        const idx = AppState.carouselSlides.findIndex(x => x.id === id);
+        if (idx >= 0) AppState.carouselSlides[idx] = slideObj;
+      } else {
+        AppState.carouselSlides.push(slideObj);
       }
 
+      AppState.carouselSlides.sort((a, b) => a.order - b.order);
       closeCarouselModal();
-      await syncAllDataFromBackend();
+      renderCarouselSlides();
       renderAdminCarouselList();
+      showToast('Slide carousel 3D berhasil disimpan.', 'success');
     }
 
-    async function deleteCarousel(slideId) {
-      const res = await callBackend('deleteSlide', { token: AppState.adminToken, slideId });
-      if (res && res.success) {
-        showToast(res.message, 'info');
-      }
+    function deleteCarousel(slideId) {
       AppState.carouselSlides = AppState.carouselSlides.filter(x => x.id !== slideId);
       renderCarouselSlides();
       renderAdminCarouselList();
+      showToast('Slide carousel dihapus.', 'info');
     }
 
     function editCarousel(slideId) {
       openModalCarouselForm(slideId);
     }
 
-    async function saveLocationForm(e) {
+    function saveLocationForm(e) {
       e.preventDefault();
       const addr = document.getElementById('locAddressInput').value.trim();
       const lat = parseFloat(document.getElementById('locLatInput').value);
       const lng = parseFloat(document.getElementById('locLngInput').value);
 
-      const locData = { address: addr, latitude: lat, longitude: lng, status: 'Active' };
-      const res = await callBackend('saveLocation', { token: AppState.adminToken, locationData: locData });
-      
       AppState.location.address = addr;
       AppState.location.latitude = lat;
       AppState.location.longitude = lng;
 
       updateMapsEmbed(lat, lng, addr);
-      showToast(res && res.success ? res.message : 'Lokasi maps berhasil diperbarui.', 'success');
+      showToast('Lokasi maps berhasil diperbarui.', 'success');
     }
 
     function updateMapsEmbed(lat, lng, addr) {
@@ -1698,29 +1764,21 @@
       }
     }
 
-    async function saveGeneralSettings(e) {
+    function saveGeneralSettings(e) {
       e.preventDefault();
-      const st = document.getElementById('setStartTime').value;
-      const et = document.getElementById('setEndTime').value;
-      const tol = document.getElementById('setTolerance').value;
+      AppState.settings.work_start_time = document.getElementById('setStartTime').value;
+      AppState.settings.work_end_time = document.getElementById('setEndTime').value;
+      AppState.settings.late_tolerance_minutes = document.getElementById('setTolerance').value;
+      
       const endpoint = document.getElementById('setGasEndpointUrl').value.trim();
-
-      AppState.settings.work_start_time = st;
-      AppState.settings.work_end_time = et;
-      AppState.settings.late_tolerance_minutes = tol;
-      AppState.gasEndpoint = endpoint || DEFAULT_GAS_ENDPOINT;
-
-      localStorage.setItem('facelog_gas_endpoint', AppState.gasEndpoint);
-
-      const newSettings = {
-        work_start_time: st,
-        work_end_time: et,
-        late_tolerance_minutes: tol
-      };
-
-      const res = await callBackend('saveSettings', { token: AppState.adminToken, newSettings });
+      AppState.gasEndpoint = endpoint;
+      if (endpoint) {
+        localStorage.setItem('facelog_gas_endpoint', endpoint);
+      } else {
+        localStorage.removeItem('facelog_gas_endpoint');
+      }
       initRuntimeIndicator();
-      showToast(res && res.success ? res.message : 'Pengaturan jam kerja disimpan.', 'success');
+      showToast('Pengaturan jam kerja dan endpoint disimpan.', 'success');
     }
 
     function switchTab(tabId) {
@@ -1743,6 +1801,7 @@
         activeBtn.querySelector('div').className = 'w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-brand-500/10';
       }
 
+      // Re-trigger camera if returning to scan tab
       if (tabId === 'scan' && !AppState.webcamStream) {
         requestCameraAccess();
       }
