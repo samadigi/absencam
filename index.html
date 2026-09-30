@@ -1,0 +1,1801 @@
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>FaceLog Mobile — Absensi Scan Wajah Pintar</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <!-- Google Font: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              100: '#e0f2fe',
+              400: '#38bdf8',
+              500: '#00A8FF',
+              600: '#006CFF',
+              700: '#2563EB',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Laser Scan Line Animation */
+    @keyframes laserScan {
+      0% { top: 6%; opacity: 0.85; }
+      50% { top: 90%; opacity: 1; filter: drop-shadow(0 0 10px #00A8FF); }
+      100% { top: 6%; opacity: 0.85; }
+    }
+    .animate-laser {
+      animation: laserScan 2.2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    /* Continuous Border Glow Loop */
+    @keyframes movingBorder {
+      0% { border-color: rgba(0, 168, 255, 0.4); box-shadow: 0 0 12px rgba(0, 168, 255, 0.2); }
+      50% { border-color: rgba(37, 99, 235, 0.8); box-shadow: 0 0 20px rgba(37, 99, 235, 0.35); }
+      100% { border-color: rgba(0, 168, 255, 0.4); box-shadow: 0 0 12px rgba(0, 168, 255, 0.2); }
+    }
+    .glow-border-pulse {
+      animation: movingBorder 3.5s ease-in-out infinite;
+    }
+
+    /* 3D Fan Carousel Perspective */
+    .carousel-3d-stage {
+      perspective: 1100px;
+      transform-style: preserve-3d;
+    }
+
+    /* Scroll Driven Animation */
+    .scroll-card {
+      opacity: 0;
+      transform: translateY(24px) scale(0.98);
+      transition: opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1), transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+      will-change: opacity, transform;
+    }
+    .scroll-card.is-visible {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    /* Glassmorphism Classes */
+    .glass-dark {
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-light {
+      background: rgba(255, 255, 255, 0.82);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    /* Light Mode Complete Theme Overrides */
+    html:not(.dark) body {
+      background-color: #f1f5f9 !important;
+      color: #0f172a !important;
+    }
+    html:not(.dark) #mobileAppShell {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04) !important;
+    }
+    html:not(.dark) header {
+      background-color: rgba(255, 255, 255, 0.92) !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) nav {
+      background-color: rgba(255, 255, 255, 0.95) !important;
+      border-color: #e2e8f0 !important;
+      box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
+    }
+    html:not(.dark) .scroll-card {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+      color: #0f172a !important;
+      box-shadow: 0 4px 12px -2px rgba(15, 23, 42, 0.05) !important;
+    }
+    html:not(.dark) .bg-slate-900,
+    html:not(.dark) .bg-slate-900\/90,
+    html:not(.dark) .bg-slate-900\/80,
+    html:not(.dark) .bg-slate-900\/50,
+    html:not(.dark) .bg-slate-950\/90,
+    html:not(.dark) .bg-slate-950\/80 {
+      background-color: #ffffff !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) .bg-slate-800,
+    html:not(.dark) .bg-slate-800\/90,
+    html:not(.dark) .bg-slate-800\/80,
+    html:not(.dark) .bg-slate-800\/70,
+    html:not(.dark) .bg-slate-800\/50,
+    html:not(.dark) .bg-slate-800\/40 {
+      background-color: #f1f5f9 !important;
+      border-color: #e2e8f0 !important;
+    }
+    html:not(.dark) .text-slate-100,
+    html:not(.dark) .text-slate-200 {
+      color: #0f172a !important;
+    }
+    html:not(.dark) .text-slate-300,
+    html:not(.dark) .text-slate-400 {
+      color: #475569 !important;
+    }
+    html:not(.dark) .text-slate-500 {
+      color: #64748b !important;
+    }
+    html:not(.dark) input,
+    html:not(.dark) select,
+    html:not(.dark) textarea {
+      background-color: #f8fafc !important;
+      color: #0f172a !important;
+      border-color: #cbd5e1 !important;
+    }
+    html:not(.dark) footer {
+      border-color: #e2e8f0 !important;
+      color: #64748b !important;
+    }
+    /* Pertahankan Scanner Viewport tetap high-contrast dark untuk kenyamanan kamera */
+    #webcamVideo,
+    .aspect-\[4\/4\.5\] {
+      background-color: #020617 !important;
+    }
+
+    /* Pulse Glow */
+    .pulse-glow {
+      box-shadow: 0 0 0 0 rgba(0, 168, 255, 0.5);
+      animation: pulseRings 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulseRings {
+      0% { box-shadow: 0 0 0 0 rgba(0, 168, 255, 0.6); }
+      70% { box-shadow: 0 0 0 12px rgba(0, 168, 255, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(0, 168, 255, 0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .scroll-card {
+        transition: none !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+      .animate-laser {
+        animation: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 font-sans transition-colors duration-300 min-h-screen select-none antialiased">
+
+  <!-- Mobile Shell Wrapper -->
+  <div id="mobileAppShell" class="max-w-md mx-auto min-h-screen relative bg-slate-900/90 dark:bg-slate-950 text-slate-100 pb-24 shadow-2xl flex flex-col border-x border-slate-800/80 overflow-x-hidden">
+
+    <!-- Top App Bar / Header -->
+    <header class="sticky top-0 z-40 bg-slate-900/85 dark:bg-slate-950/85 backdrop-blur-md border-b border-slate-800/80 px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-2.5">
+        <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-sky-400 flex items-center justify-center shadow-lg shadow-brand-500/25">
+          <i class="fa-solid fa-face-viewfinder text-white text-lg"></i>
+        </div>
+        <div>
+          <h1 class="font-extrabold text-base tracking-tight leading-none bg-gradient-to-r from-sky-400 via-brand-500 to-blue-600 bg-clip-text text-transparent">
+            FaceLog <span class="text-xs uppercase px-1.5 py-0.5 rounded-full bg-brand-500/10 text-brand-400 font-bold border border-brand-500/30">Mobile</span>
+          </h1>
+          <p id="liveHeaderClock" class="text-[10px] text-slate-400 font-medium tracking-wide mt-0.5">Memuat waktu...</p>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <!-- Runtime Badge -->
+        <span id="runtimeModeBadge" class="text-[9px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+          <i class="fa-solid fa-circle-check text-[8px] mr-1"></i>Live Safe
+        </span>
+        <!-- Iframe Breakout Button (Tampil jika di-embed dalam iframe) -->
+        <button id="iframeBreakoutBtn" onclick="openStandaloneWindow()" class="hidden w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-sky-400 flex items-center justify-center transition border border-slate-700/50" title="Buka di Tab Penuh (Bypass Batasan Iframe)">
+          <i class="fa-solid fa-up-right-from-square text-xs"></i>
+        </button>
+        <!-- Dark / Light Mode Toggle -->
+        <button id="themeToggleBtn" onclick="toggleTheme()" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 flex items-center justify-center transition border border-slate-700/50" title="Ganti Mode Tampilan">
+          <i id="themeToggleIcon" class="fa-solid fa-moon text-xs text-amber-400"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Iframe Permission Alert Banner -->
+    <div id="iframePermissionWarning" class="hidden mx-4 mt-3 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs">
+      <div class="flex items-start space-x-2.5">
+        <i class="fa-solid fa-triangle-exclamation text-amber-400 text-sm mt-0.5 shrink-0"></i>
+        <div class="space-y-1">
+          <p class="font-bold">Aplikasi Berjalan di dalam iFrame</p>
+          <p class="text-[11px] text-amber-200/90 leading-relaxed">
+            Jika kamera tidak aktif, pastikan tag <code class="bg-slate-900/60 px-1 py-0.5 rounded text-[10px]">allow="camera; microphone; geolocation"</code> telah ditambahkan ke iFrame, atau buka langsung di tab baru.
+          </p>
+          <button onclick="openStandaloneWindow()" class="inline-flex items-center space-x-1.5 mt-1 text-[11px] font-bold text-sky-400 hover:underline">
+            <span>Buka Langsung di Tab Baru</span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HERO SECTION WITH 3D CURVED / FAN CAROUSEL -->
+    <section class="px-4 pt-4 pb-2">
+      <!-- Badge Headline -->
+      <div class="flex items-center justify-between mb-2">
+        <span class="inline-flex items-center text-[10px] font-bold tracking-wider uppercase px-2 py-0.5 rounded-md bg-brand-500/15 text-brand-400 border border-brand-500/25">
+          <i class="fa-solid fa-sparkles mr-1.5 text-sky-400"></i>Smart Attendance System
+        </span>
+        <span class="text-[11px] text-slate-400 font-medium" id="carouselSlideCounter">1 / 3</span>
+      </div>
+
+      <!-- 3D Fan Carousel Viewport Container -->
+      <div class="relative w-full overflow-hidden py-2" id="carouselWrapper">
+        <div class="carousel-3d-stage relative h-48 w-full flex items-center justify-center">
+          <!-- Slide Container dynamically rendered via JS -->
+          <div id="carouselSlidesTrack" class="relative w-full h-full flex items-center justify-center"></div>
+        </div>
+
+        <!-- Carousel Navigation Controls -->
+        <div class="flex items-center justify-between px-2 mt-2">
+          <button onclick="prevSlide()" class="w-7 h-7 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition active:scale-90 text-xs">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+          <!-- Dots Indicator -->
+          <div id="carouselDots" class="flex items-center space-x-1.5"></div>
+          <button onclick="nextSlide()" class="w-7 h-7 rounded-full bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center justify-center transition active:scale-90 text-xs">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAIN CONTENT VIEWPORTS -->
+    <main class="flex-1 px-4 py-2 space-y-5">
+
+      <!-- ================= TAB 1: SCAN PEMINDAI WAJAH (DEFAULT) ================= -->
+      <div id="tab-scan" class="tab-view space-y-4">
+
+        <!-- Attendance Mode Selector -->
+        <div class="scroll-card p-1.5 rounded-2xl bg-slate-800/70 border border-slate-700/60 flex items-center space-x-1.5">
+          <button id="btnModeMasuk" onclick="setAttendanceMode('Masuk')" class="flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20">
+            <i class="fa-solid fa-right-to-bracket text-xs"></i>
+            <span>PRESENSI MASUK</span>
+          </button>
+          <button id="btnModePulang" onclick="setAttendanceMode('Pulang')" class="flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center space-x-1.5">
+            <i class="fa-solid fa-right-from-bracket text-xs"></i>
+            <span>PRESENSI PULANG</span>
+          </button>
+        </div>
+
+        <!-- Camera Scanner Card with Auto-Activation -->
+        <div class="scroll-card relative rounded-3xl bg-slate-900 border-2 border-brand-500/40 glow-border-pulse p-3 overflow-hidden shadow-2xl">
+          <!-- Header Card -->
+          <div class="flex items-center justify-between mb-2 px-1">
+            <div class="flex items-center space-x-2">
+              <span class="relative flex h-2.5 w-2.5">
+                <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+              </span>
+              <span id="cameraStatusText" class="text-xs font-bold text-slate-200">Kamera Wajah Aktif</span>
+            </div>
+            <button onclick="restartCamera()" class="text-[11px] text-brand-400 hover:text-brand-300 font-medium flex items-center space-x-1">
+              <i class="fa-solid fa-arrows-rotate text-[10px]"></i>
+              <span>Refresh Cam</span>
+            </button>
+          </div>
+
+          <!-- Video Stream & Oval Target Guide Viewport -->
+          <div class="relative w-full aspect-[4/4.5] rounded-2xl bg-slate-950 overflow-hidden flex items-center justify-center border border-slate-800">
+            <!-- Video Element (Front Camera) -->
+            <video id="webcamVideo" autoplay playsinline muted class="w-full h-full object-cover transform -scale-x-100"></video>
+            <!-- Canvas snapshot fallback/processing -->
+            <canvas id="snapshotCanvas" class="hidden"></canvas>
+
+            <!-- Face Oval Target Overlay -->
+            <div class="absolute inset-0 pointer-events-none flex flex-col items-center justify-center">
+              <!-- Oval Target Ring -->
+              <div class="w-48 h-64 rounded-[50%] border-2 border-dashed border-sky-400/80 shadow-[0_0_20px_rgba(0,168,255,0.35)] relative flex items-center justify-center">
+                <!-- Laser Scan Line -->
+                <div class="animate-laser absolute left-2 right-2 h-1 bg-gradient-to-r from-transparent via-cyan-400 to-transparent rounded-full shadow-[0_0_12px_#00E5FF]"></div>
+                <!-- Corner Guide Accents -->
+                <span class="absolute top-2 text-[10px] text-sky-300/90 font-semibold uppercase tracking-wider bg-slate-950/60 px-2 py-0.5 rounded-full border border-sky-400/30">
+                  Posisikan Wajah
+                </span>
+                <span class="absolute bottom-3 text-[10px] text-slate-300 font-normal bg-slate-950/70 px-2.5 py-0.5 rounded-full">
+                  Lepas Masker / Kacamata Gelap
+                </span>
+              </div>
+            </div>
+
+            <!-- Fallback Mock / Offline Overlay -->
+            <div id="cameraFallbackOverlay" class="hidden absolute inset-0 bg-slate-950/90 flex flex-col items-center justify-center p-4 text-center">
+              <i class="fa-solid fa-camera-slash text-3xl text-amber-400 mb-2"></i>
+              <p class="text-xs font-semibold text-slate-200">Kamera Belum Diizinkan</p>
+              <p class="text-[11px] text-slate-400 mt-1 max-w-[200px]">Aktifkan izin kamera smartphone atau gunakan mode simulasi presensi instan.</p>
+              <button onclick="requestCameraAccess()" class="mt-3 px-3 py-1.5 rounded-xl bg-brand-600 text-white text-xs font-bold hover:bg-brand-500 transition">
+                Izinkan Kamera
+              </button>
+            </div>
+          </div>
+
+          <!-- Employee Recognition Selector -->
+          <div class="mt-3 pt-2 border-t border-slate-800/80">
+            <label class="block text-[11px] font-semibold text-slate-400 mb-1.5 flex items-center justify-between">
+              <span><i class="fa-solid fa-user-check text-brand-400 mr-1"></i>Pilih Profil Karyawan:</span>
+              <span id="selectedUserNip" class="text-brand-400 font-mono text-[10px]">EMP-1001</span>
+            </label>
+            <select id="employeeSelect" onchange="onEmployeeSelectChange()" class="w-full bg-slate-800/90 text-slate-100 border border-slate-700 rounded-xl px-3 py-2 text-xs font-medium focus:outline-none focus:border-brand-500 transition">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+
+          <!-- Instant Face Capture Action Button -->
+          <div class="mt-4">
+            <button id="btnCaptureScan" onclick="executeFaceScan()" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-sky-400 via-brand-600 to-blue-700 text-white font-extrabold text-sm tracking-wide shadow-lg shadow-brand-500/35 hover:shadow-brand-500/50 active:scale-95 transition flex items-center justify-center space-x-2 pulse-glow">
+              <i class="fa-solid fa-camera text-base"></i>
+              <span id="btnScanLabel">SCAN & REKAM KEHADIRAN</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Info Quick Attendance Card -->
+        <div class="scroll-card p-3 rounded-2xl bg-slate-800/40 border border-slate-700/50 flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-500/15 border border-brand-500/30 flex items-center justify-center text-brand-400 shrink-0">
+            <i class="fa-solid fa-shield-halved text-base"></i>
+          </div>
+          <div class="text-[11px] leading-tight">
+            <p class="font-bold text-slate-200">Verifikasi Anti-Fake GPS & Wajah</p>
+            <p class="text-slate-400 mt-0.5">Snapshot disimpan langsung ke database Google Sheets dengan timestamp server resmi.</p>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================= TAB 2: RIWAYAT KEHADIRAN HARI INI ================= -->
+      <div id="tab-riwayat" class="tab-view hidden space-y-4">
+        <!-- Header Riwayat -->
+        <div class="scroll-card p-3.5 rounded-2xl bg-gradient-to-br from-slate-800/80 to-slate-900 border border-slate-700 flex items-center justify-between">
+          <div>
+            <h3 class="font-bold text-sm text-slate-100">Log Presensi Hari Ini</h3>
+            <p id="todayDateLabel" class="text-[11px] text-slate-400 mt-0.5">Memuat tanggal...</p>
+          </div>
+          <button onclick="loadAttendanceLogs()" class="px-2.5 py-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-brand-400 text-xs font-semibold border border-slate-700 flex items-center space-x-1">
+            <i class="fa-solid fa-arrow-rotate-right text-[10px]"></i>
+            <span>Segarkan</span>
+          </button>
+        </div>
+
+        <!-- List Presensi Container -->
+        <div id="attendanceLogsList" class="space-y-2.5">
+          <!-- Rendered dynamically -->
+          <div class="text-center py-10 text-slate-500 text-xs">
+            <i class="fa-solid fa-circle-notch fa-spin text-xl mb-2 text-brand-400"></i>
+            <p>Memuat rekap presensi...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================= TAB 3: ADMIN PORTAL & DASHBOARD ================= -->
+      <div id="tab-admin" class="tab-view hidden space-y-4">
+
+        <!-- PRE-LOGIN ADMIN VIEW -->
+        <div id="adminPreLoginCard" class="scroll-card rounded-3xl bg-slate-900/90 border border-slate-700/80 p-5 shadow-2xl">
+          <div class="text-center mb-5">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center text-white text-2xl shadow-xl shadow-brand-500/30 mb-2">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3 class="font-extrabold text-base text-slate-100">Portal Masuk Admin</h3>
+            <p class="text-xs text-slate-400 mt-0.5">Kelola karyawan, slide carousel 3D, lokasi maps, dan rekap log.</p>
+          </div>
+
+          <!-- Login Form -->
+          <form id="adminLoginForm" onsubmit="handleAdminLogin(event)" class="space-y-3.5">
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Username Admin</label>
+              <div class="relative">
+                <i class="fa-solid fa-user absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                <input type="text" id="adminUsernameInput" value="admin" required placeholder="Masukkan username" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-brand-500 transition">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-300 mb-1">Password</label>
+              <div class="relative">
+                <i class="fa-solid fa-lock absolute left-3.5 top-3 text-slate-500 text-xs"></i>
+                <input type="password" id="adminPasswordInput" value="123" required placeholder="Masukkan password" class="w-full bg-slate-800/80 border border-slate-700 rounded-xl pl-9 pr-10 py-2 text-xs text-slate-100 focus:outline-none focus:border-brand-500 transition">
+                <!-- Show / Hide Password Button -->
+                <button type="button" onclick="togglePasswordVisibility('adminPasswordInput', 'pwdToggleIcon')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200 text-xs focus:outline-none">
+                  <i id="pwdToggleIcon" class="fa-solid fa-eye-slash"></i>
+                </button>
+              </div>
+            </div>
+
+            <div class="pt-1">
+              <button type="submit" id="btnAdminSubmit" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-sky-400 via-brand-600 to-blue-700 text-white font-bold text-xs shadow-md shadow-brand-500/25 hover:shadow-brand-500/40 active:scale-95 transition flex items-center justify-center space-x-1.5">
+                <i class="fa-solid fa-arrow-right-to-bracket text-xs"></i>
+                <span>Masuk ke Dashboard</span>
+              </button>
+            </div>
+
+            <div class="p-2.5 rounded-xl bg-slate-800/50 border border-slate-700/40 text-[11px] text-slate-400 flex items-center justify-between">
+              <span>Akun Default: <strong class="text-slate-200">admin</strong> / <strong class="text-slate-200">123</strong></span>
+              <button type="button" onclick="quickFillAdminLogin()" class="text-brand-400 font-semibold hover:underline">Isi Cepat</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- POST-LOGIN DASHBOARD VIEW -->
+        <div id="adminDashboardView" class="hidden space-y-4">
+          <!-- Top Admin Bar -->
+          <div class="scroll-card p-3 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 border border-slate-700 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5">
+              <div class="w-9 h-9 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-sm font-bold">
+                AD
+              </div>
+              <div>
+                <p class="text-xs font-bold text-slate-200" id="adminSessionUsername">Administrator</p>
+                <p class="text-[10px] text-emerald-400 font-medium">Session Terverifikasi</p>
+              </div>
+            </div>
+            <button onclick="handleAdminLogout()" class="px-2.5 py-1 rounded-lg bg-rose-500/15 text-rose-400 border border-rose-500/30 hover:bg-rose-500/25 text-xs font-bold transition flex items-center space-x-1">
+              <i class="fa-solid fa-arrow-right-from-bracket text-[10px]"></i>
+              <span>Logout</span>
+            </button>
+          </div>
+
+          <!-- KPI Metrics Cards Grid -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="scroll-card p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-md">
+              <div class="flex items-center justify-between text-slate-400 text-xs">
+                <span>Total Karyawan</span>
+                <i class="fa-solid fa-users text-sky-400"></i>
+              </div>
+              <p id="kpiTotalUsers" class="text-xl font-black text-slate-100 mt-1">0</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Terdaftar aktif</p>
+            </div>
+            <div class="scroll-card p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-md">
+              <div class="flex items-center justify-between text-slate-400 text-xs">
+                <span>Hadir Hari Ini</span>
+                <i class="fa-solid fa-clipboard-check text-emerald-400"></i>
+              </div>
+              <p id="kpiHadirToday" class="text-xl font-black text-emerald-400 mt-1">0</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">Sudah presensi</p>
+            </div>
+            <div class="scroll-card p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-md">
+              <div class="flex items-center justify-between text-slate-400 text-xs">
+                <span>Tepat Waktu</span>
+                <i class="fa-solid fa-clock-check text-brand-400"></i>
+              </div>
+              <p id="kpiTepatWaktu" class="text-xl font-black text-brand-400 mt-1">0</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">&le; 08:15 WIB</p>
+            </div>
+            <div class="scroll-card p-3 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-md">
+              <div class="flex items-center justify-between text-slate-400 text-xs">
+                <span>Terlambat</span>
+                <i class="fa-solid fa-triangle-exclamation text-amber-400"></i>
+              </div>
+              <p id="kpiTerlambat" class="text-xl font-black text-amber-400 mt-1">0</p>
+              <p class="text-[10px] text-slate-500 mt-0.5">&gt; Jam toleransi</p>
+            </div>
+          </div>
+
+          <!-- Admin Sub-Navigation Pills -->
+          <div class="flex overflow-x-auto space-x-1.5 pb-1 no-scrollbar text-xs font-semibold">
+            <button onclick="setAdminTab('users')" id="btnSubUsers" class="px-3 py-1.5 rounded-xl bg-brand-600 text-white shrink-0">Karyawan</button>
+            <button onclick="setAdminTab('carousel')" id="btnSubCarousel" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 shrink-0">Carousel 3D</button>
+            <button onclick="setAdminTab('location')" id="btnSubLocation" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 shrink-0">Lokasi Maps</button>
+            <button onclick="setAdminTab('settings')" id="btnSubSettings" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 shrink-0">Pengaturan</button>
+          </div>
+
+          <!-- ADMIN SUB-TAB 1: KELOLA KARYAWAN -->
+          <div id="adminSub-users" class="space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-slate-300">Daftar Karyawan Terdaftar</h4>
+              <button onclick="openModalUserForm()" class="px-2.5 py-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold flex items-center space-x-1 shadow-md shadow-emerald-500/20">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Tambah User</span>
+              </button>
+            </div>
+            <!-- Users List Table / Cards -->
+            <div id="adminUsersList" class="space-y-2"></div>
+          </div>
+
+          <!-- ADMIN SUB-TAB 2: KELOLA HERO CAROUSEL 3D -->
+          <div id="adminSub-carousel" class="hidden space-y-3">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-bold text-slate-300">Slide Hero Carousel 3D</h4>
+              <button onclick="openModalCarouselForm()" class="px-2.5 py-1 rounded-xl bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold flex items-center space-x-1">
+                <i class="fa-solid fa-plus text-[10px]"></i>
+                <span>Tambah Slide</span>
+              </button>
+            </div>
+            <div id="adminCarouselList" class="space-y-2"></div>
+          </div>
+
+          <!-- ADMIN SUB-TAB 3: PENGATURAN LOKASI GOOGLE MAPS -->
+          <div id="adminSub-location" class="hidden space-y-3">
+            <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+              <h4 class="text-xs font-bold text-slate-200 flex items-center space-x-1.5">
+                <i class="fa-solid fa-map-location-dot text-brand-400"></i>
+                <span>Pengaturan Lokasi Presensi Kantor</span>
+              </h4>
+              <form id="locationSettingsForm" onsubmit="saveLocationForm(event)" class="space-y-2.5">
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Alamat Kantor Lengkap</label>
+                  <textarea id="locAddressInput" rows="2" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100 focus:outline-none focus:border-brand-500"></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Latitude</label>
+                    <input type="number" step="any" id="locLatInput" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Longitude</label>
+                    <input type="number" step="any" id="locLngInput" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100">
+                  </div>
+                </div>
+                <div class="flex items-center justify-between pt-1">
+                  <button type="button" onclick="useCurrentGeolocation()" class="text-xs text-brand-400 font-semibold hover:underline">
+                    <i class="fa-solid fa-location-crosshairs mr-1"></i>Ambil GPS HP Sekarang
+                  </button>
+                  <button type="submit" class="px-3 py-1.5 rounded-xl bg-brand-600 text-white font-bold text-xs hover:bg-brand-500 shadow-md">
+                    Simpan Lokasi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <!-- ADMIN SUB-TAB 4: PENGATURAN UMUM / JAM KERJA -->
+          <div id="adminSub-settings" class="hidden space-y-3">
+            <div class="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 space-y-3">
+              <h4 class="text-xs font-bold text-slate-200">Jam Kerja & Toleransi</h4>
+              <form id="generalSettingsForm" onsubmit="saveGeneralSettings(event)" class="space-y-2.5">
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Jam Masuk (WIB)</label>
+                    <input type="time" id="setStartTime" value="08:00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100">
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-semibold text-slate-400 mb-1">Jam Pulang (WIB)</label>
+                    <input type="time" id="setEndTime" value="17:00" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100">
+                  </div>
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-slate-400 mb-1">Toleransi Terlambat (Menit)</label>
+                  <input type="number" id="setTolerance" value="15" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100">
+                </div>
+
+                <!-- GitHub Hosting Backend Connection -->
+                <div class="pt-2 border-t border-slate-800">
+                  <label class="block text-[11px] font-semibold text-sky-400 mb-1">
+                    <i class="fa-brands fa-google text-xs mr-1"></i>URL Web App Google Apps Script (Untuk GitHub Hosting)
+                  </label>
+                  <input type="url" id="setGasEndpointUrl" placeholder="https://script.google.com/macros/s/.../exec" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-xs text-slate-100 font-mono text-[10px]">
+                  <p class="text-[10px] text-slate-400 mt-1">Kosongkan jika di-deploy langsung di Apps Script, atau isi URL deployment untuk menghubungkan frontend GitHub ke Spreadsheet GAS.</p>
+                </div>
+
+                <div class="pt-1">
+                  <button type="submit" class="w-full py-2 rounded-xl bg-brand-600 text-white font-bold text-xs hover:bg-brand-500">
+                    Simpan Konfigurasi
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+      <!-- ================= SECTION INTERACTIVE GOOGLE MAPS (SEBELUM FOOTER) ================= -->
+      <section class="scroll-card mt-6 rounded-3xl bg-slate-900/90 border border-slate-800/90 p-3.5 shadow-xl">
+        <div class="flex items-center justify-between mb-2">
+          <div class="flex items-center space-x-2">
+            <div class="w-7 h-7 rounded-lg bg-brand-500/15 text-brand-400 flex items-center justify-center text-xs">
+              <i class="fa-solid fa-location-dot"></i>
+            </div>
+            <div>
+              <h3 class="text-xs font-bold text-slate-100">Lokasi Presensi Resmi</h3>
+              <p class="text-[10px] text-slate-400">Peta interaktif zona kehadiran kantor</p>
+            </div>
+          </div>
+          <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            Aktif
+          </span>
+        </div>
+
+        <!-- Interactive Map Frame Viewport -->
+        <div class="w-full h-44 rounded-2xl overflow-hidden border border-slate-800 relative bg-slate-950">
+          <iframe id="googleMapsIframe" class="w-full h-full border-0" loading="lazy" referrerpolicy="no-referrer-when-downgrade" src="https://maps.google.com/maps?q=-6.224168,106.831782&hl=id&z=15&output=embed"></iframe>
+          <!-- Pin info badge overlay -->
+          <div class="absolute bottom-2 left-2 right-2 p-2 rounded-xl bg-slate-950/80 backdrop-blur-md border border-slate-800 text-[10px] flex items-center justify-between">
+            <span id="mapAddressSnippet" class="truncate text-slate-300 pr-2">Gedung Cyber 2 Tower, Jakarta Selatan</span>
+            <a id="mapExternalLink" href="https://maps.google.com/?q=-6.224168,106.831782" target="_blank" class="shrink-0 text-brand-400 font-bold hover:underline">
+              Buka <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+            </a>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- ================= MODERN FOOTER ================= -->
+    <footer class="px-4 py-5 mt-auto border-t border-slate-800/80 text-center space-y-2 text-slate-500">
+      <div class="flex items-center justify-center space-x-2">
+        <div class="w-5 h-5 rounded-md bg-gradient-to-tr from-brand-600 to-sky-400 flex items-center justify-center text-white text-[10px]">
+          <i class="fa-solid fa-face-viewfinder"></i>
+        </div>
+        <span class="text-xs font-extrabold text-slate-300 tracking-tight" id="footerBrandName">FaceLog Mobile</span>
+      </div>
+      <p class="text-[11px] text-slate-400 max-w-xs mx-auto" id="footerDescText">
+        Presensi scan wajah pintar otomatis ramah smartphone, aman dan akurat.
+      </p>
+      <div class="flex items-center justify-center space-x-3 text-[10px] text-slate-400 pt-1">
+        <span id="footerCopyright">© 2026 FaceLog Mobile.</span>
+        <span>•</span>
+        <span class="text-brand-400 font-semibold">Engineered with SamaDigi</span>
+      </div>
+    </footer>
+
+    <!-- ================= MOBILE BOTTOM NAVIGATION BAR (FIXED BOTTOM) ================= -->
+    <nav class="fixed bottom-0 left-0 right-0 z-50 max-w-md mx-auto bg-slate-900/95 dark:bg-slate-950/95 backdrop-blur-xl border-t border-slate-800 px-6 py-2 flex items-center justify-around shadow-2xl">
+      <!-- Nav Item 1: Scan (Home) -->
+      <button onclick="switchTab('scan')" id="nav-btn-scan" class="flex flex-col items-center py-1 transition group text-brand-400">
+        <div class="w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-brand-500/10">
+          <i class="fa-solid fa-camera-viewfinder text-lg"></i>
+        </div>
+        <span class="text-[10px] font-bold mt-0.5 tracking-tight">Scan</span>
+      </button>
+
+      <!-- Nav Item 2: Riwayat -->
+      <button onclick="switchTab('riwayat')" id="nav-btn-riwayat" class="flex flex-col items-center py-1 transition group text-slate-400 hover:text-slate-200">
+        <div class="w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-slate-800">
+          <i class="fa-solid fa-clock-rotate-left text-lg"></i>
+        </div>
+        <span class="text-[10px] font-medium mt-0.5 tracking-tight">Riwayat</span>
+      </button>
+
+      <!-- Nav Item 3: Admin -->
+      <button onclick="switchTab('admin')" id="nav-btn-admin" class="flex flex-col items-center py-1 transition group text-slate-400 hover:text-slate-200">
+        <div class="w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-slate-800">
+          <i class="fa-solid fa-user-shield text-lg"></i>
+        </div>
+        <span class="text-[10px] font-medium mt-0.5 tracking-tight">Admin</span>
+      </button>
+    </nav>
+
+    <!-- SUCCESS PRESENSI MODAL -->
+    <div id="successScanModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-xs rounded-3xl bg-slate-900 border border-slate-700 p-5 text-center shadow-2xl space-y-3 transform transition-all">
+        <div class="w-14 h-14 mx-auto rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 flex items-center justify-center text-2xl shadow-lg shadow-emerald-500/20">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-slate-100" id="modalResultTitle">Presensi Berhasil!</h3>
+          <p class="text-xs text-slate-400 mt-0.5" id="modalResultSubtitle">Data kehadiran berhasil diverifikasi.</p>
+        </div>
+
+        <!-- Snapshot Preview Thumbnail -->
+        <div class="w-24 h-24 mx-auto rounded-2xl overflow-hidden border-2 border-brand-500/50 shadow-inner bg-slate-950">
+          <img id="modalResultSnapshot" src="" alt="Snapshot Wajah" class="w-full h-full object-cover">
+        </div>
+
+        <div class="p-2.5 rounded-xl bg-slate-800/80 text-[11px] text-slate-300 space-y-1 text-left">
+          <div class="flex justify-between"><span>Nama:</span><strong id="modalResultName" class="text-slate-100">-</strong></div>
+          <div class="flex justify-between"><span>Waktu:</span><span id="modalResultTime" class="font-mono text-brand-400">-</span></div>
+          <div class="flex justify-between"><span>Status:</span><span id="modalResultStatus" class="font-bold text-emerald-400">-</span></div>
+        </div>
+
+        <button onclick="closeSuccessModal()" class="w-full py-2.5 rounded-xl bg-brand-600 hover:bg-brand-500 text-white font-bold text-xs shadow-md transition">
+          Selesai
+        </button>
+      </div>
+    </div>
+
+    <!-- MODAL FORM USER / KARYAWAN -->
+    <div id="userModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700 p-5 shadow-2xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h3 class="text-xs font-bold text-slate-100" id="userModalTitle">Tambah Karyawan Baru</h3>
+          <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-200 text-xs"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="userForm" onsubmit="handleSaveUser(event)" class="space-y-2.5 text-xs">
+          <input type="hidden" id="formUserId">
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Nama Lengkap</label>
+            <input type="text" id="formUserNama" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold text-slate-400 mb-1">NIP / ID</label>
+              <input type="text" id="formUserNip" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-400 mb-1">Divisi</label>
+              <input type="text" id="formUserDivisi" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+            </div>
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Foto Referensi Wajah (URL / Snapshot)</label>
+            <input type="text" id="formUserFoto" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100" placeholder="https://...">
+          </div>
+          <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <button type="button" onclick="closeUserModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300">Batal</button>
+            <button type="submit" class="px-4 py-1.5 rounded-xl bg-brand-600 text-white font-bold">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- MODAL FORM HERO CAROUSEL -->
+    <div id="carouselModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-sm rounded-3xl bg-slate-900 border border-slate-700 p-5 shadow-2xl space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+          <h3 class="text-xs font-bold text-slate-100" id="carouselModalTitle">Tambah Slide Carousel 3D</h3>
+          <button onclick="closeCarouselModal()" class="text-slate-400 hover:text-slate-200 text-xs"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form id="carouselForm" onsubmit="handleSaveCarousel(event)" class="space-y-2.5 text-xs">
+          <input type="hidden" id="formCarouselId">
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Sumber Gambar</label>
+            <select id="formCarouselSource" onchange="toggleCarouselSourceType()" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+              <option value="url">Gunakan Link Gambar (URL)</option>
+              <option value="upload">Upload Gambar (File / Kamera)</option>
+            </select>
+          </div>
+          <div id="carouselUrlField">
+            <label class="block font-semibold text-slate-400 mb-1">URL Gambar</label>
+            <input type="url" id="formCarouselUrl" placeholder="https://..." class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+          </div>
+          <div id="carouselUploadField" class="hidden">
+            <label class="block font-semibold text-slate-400 mb-1">Pilih File Gambar</label>
+            <input type="file" id="formCarouselFile" accept="image/*" onchange="previewUploadImage(this)" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-1.5 text-slate-100 file:mr-2 file:py-1 file:px-2 file:rounded-lg file:border-0 file:text-[10px] file:bg-brand-600 file:text-white">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Judul Slide</label>
+            <input type="text" id="formCarouselTitle" required class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+          </div>
+          <div>
+            <label class="block font-semibold text-slate-400 mb-1">Deskripsi Singkat</label>
+            <input type="text" id="formCarouselDesc" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block font-semibold text-slate-400 mb-1">Urutan</label>
+              <input type="number" id="formCarouselOrder" value="1" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+            </div>
+            <div>
+              <label class="block font-semibold text-slate-400 mb-1">Status</label>
+              <select id="formCarouselStatus" class="w-full bg-slate-800 border border-slate-700 rounded-xl p-2 text-slate-100">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex items-center justify-end space-x-2 pt-2 border-t border-slate-800">
+            <button type="button" onclick="closeCarouselModal()" class="px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300">Batal</button>
+            <button type="submit" class="px-4 py-1.5 rounded-xl bg-brand-600 text-white font-bold">Simpan</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div id="toastNotification" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 pointer-events-none transition-all duration-300 opacity-0 -translate-y-4">
+      <div id="toastInner" class="px-4 py-2.5 rounded-2xl shadow-xl text-xs font-bold flex items-center space-x-2 bg-slate-900 border border-slate-700 text-slate-100">
+        <i id="toastIcon" class="fa-solid fa-circle-check text-emerald-400"></i>
+        <span id="toastMessage">Pesan Notifikasi</span>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // URL Web App Google Apps Script backend produksi Anda
+    const DEFAULT_GAS_ENDPOINT = 'https://script.google.com/macros/s/AKfycbw92zNb4haLRZoeMvCGDP_BG1JVYN-xJD6_z-yo_ui0CVZ_tB1IDYvp4yOPCNMNsDhD/exec';
+
+    const isGasRuntime = typeof google !== 'undefined' && google.script && google.script.run;
+    const isIframe = window.self !== window.top;
+
+    function getStoredTheme() {
+      try {
+        return localStorage.getItem('facelog_theme') || 'dark';
+      } catch (e) {
+        return 'dark';
+      }
+    }
+
+    function setStoredTheme(theme) {
+      try {
+        localStorage.setItem('facelog_theme', theme);
+      } catch (e) {
+        console.warn('Storage unavailable:', e);
+      }
+    }
+
+    const AppState = {
+      theme: getStoredTheme(),
+      activeTab: 'scan',
+      currentAttendanceMode: 'Masuk',
+      webcamStream: null,
+      adminToken: sessionStorage.getItem('facelog_admin_token') || null,
+      adminUser: null,
+      gasEndpoint: localStorage.getItem('facelog_gas_endpoint') || DEFAULT_GAS_ENDPOINT,
+      users: [
+        { userId: 'USR-101', nama: 'Alex Pratama', nip: 'EMP-1001', divisi: 'Engineering', fotoReferensi: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80', status: 'Active' },
+        { userId: 'USR-102', nama: 'Citra Kirana', nip: 'EMP-1002', divisi: 'Human Resources', fotoReferensi: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&auto=format&fit=crop&q=80', status: 'Active' },
+        { userId: 'USR-103', nama: 'Rian Hidayat', nip: 'EMP-1003', divisi: 'Operasional', fotoReferensi: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80', status: 'Active' }
+      ],
+      attendanceLogs: [],
+      carouselSlides: [
+        { id: '1', imageSource: 'url', imageUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=800&auto=format&fit=crop&q=80', title: 'Presensi Wajah Cepat & Akurat', description: 'Pastikan wajah menghadap lurus ke kamera smartphone Anda.', order: 1, status: 'Active' },
+        { id: '2', imageSource: 'url', imageUrl: 'https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&auto=format&fit=crop&q=80', title: 'Tepat Waktu Setiap Hari', description: 'Jam masuk kerja dimulai pukul 08:00 WIB. Raih poin disiplin.', order: 2, status: 'Active' },
+        { id: '3', imageSource: 'url', imageUrl: 'https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=800&auto=format&fit=crop&q=80', title: 'Terintegrasi Cloud Realtime', description: 'Data absensi dan snapshot wajah diverifikasi langsung oleh Admin.', order: 3, status: 'Active' }
+      ],
+      currentSlideIdx: 0,
+      carouselAutoplayTimer: null,
+      location: {
+        id: '1',
+        address: 'Gedung Cyber 2 Tower, Kuningan, Jakarta Selatan',
+        latitude: -6.224168,
+        longitude: 106.831782,
+        status: 'Active'
+      },
+      settings: {
+        work_start_time: '08:00',
+        work_end_time: '17:00',
+        late_tolerance_minutes: '15'
+      }
+    };
+
+    async function callBackend(action, data = {}) {
+      // 1. Jalur Google Apps Script Native (Internal GAS)
+      if (isGasRuntime) {
+        return new Promise((resolve, reject) => {
+          if (typeof google.script.run[action] === 'function') {
+            google.script.run
+              .withSuccessHandler(resolve)
+              .withFailureHandler(reject)[action](data);
+          } else {
+            resolve({ success: false, message: 'Action backend tidak ditemukan: ' + action });
+          }
+        });
+      }
+
+      // 2. Jalur GitHub Pages via REST API (CORS-Safe Plain Text POST)
+      const targetEndpoint = AppState.gasEndpoint || DEFAULT_GAS_ENDPOINT;
+      if (targetEndpoint) {
+        try {
+          const payload = { action, ...data };
+          const response = await fetch(targetEndpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+            body: JSON.stringify(payload)
+          });
+          const result = await response.json();
+          return result;
+        } catch (err) {
+          console.warn(`[FaceLog] Gagal memanggil endpoint GAS (${action}):`, err);
+          return { success: false, message: 'Koneksi backend gagal: ' + err.message };
+        }
+      }
+
+      return { success: false, message: 'Endpoint backend belum diatur.' };
+    }
+
+    window.onload = async function() {
+      initTheme();
+      initLiveClock();
+      initRuntimeIndicator();
+      initIframeCheck();
+      initScrollAnimations();
+      renderCarouselSlides();
+      startCarouselAutoplay();
+      populateEmployeeSelector();
+
+      // Sinkronisasi data awal langsung dari Google Sheets Database
+      await syncAllDataFromBackend();
+
+      checkAdminSession();
+      requestCameraAccess();
+    };
+
+    async function syncAllDataFromBackend() {
+      try {
+        // Ambil data users dari Google Sheets
+        const usersRes = await callBackend('getUsers', { token: AppState.adminToken || '' });
+        if (usersRes && usersRes.success && Array.isArray(usersRes.data) && usersRes.data.length > 0) {
+          AppState.users = usersRes.data;
+          populateEmployeeSelector();
+        }
+
+        // Ambil data carousel slides dari Google Sheets
+        const slidesRes = await callBackend('getSlides');
+        if (slidesRes && slidesRes.success && Array.isArray(slidesRes.data) && slidesRes.data.length > 0) {
+          AppState.carouselSlides = slidesRes.data;
+          renderCarouselSlides();
+        }
+
+        // Ambil konfigurasi lokasi presensi
+        const locRes = await callBackend('getLocation');
+        if (locRes && locRes.success && locRes.data) {
+          AppState.location = locRes.data;
+          updateMapsEmbed(locRes.data.latitude, locRes.data.longitude, locRes.data.address);
+        }
+
+        // Ambil konfigurasi jam kerja
+        const setRes = await callBackend('getSettings');
+        if (setRes && setRes.success && setRes.data) {
+          AppState.settings = Object.assign(AppState.settings, setRes.data);
+        }
+
+        // Ambil log presensi hari ini
+        await loadAttendanceLogs();
+      } catch (e) {
+        console.warn('[FaceLog] Sinkronisasi offline/preview mode:', e);
+      }
+    }
+
+    function initIframeCheck() {
+      const breakoutBtn = document.getElementById('iframeBreakoutBtn');
+      const warningBanner = document.getElementById('iframePermissionWarning');
+      
+      if (isIframe) {
+        if (breakoutBtn) breakoutBtn.classList.remove('hidden');
+        if (navigator.permissions && navigator.permissions.query) {
+          navigator.permissions.query({ name: 'camera' }).then(res => {
+            if (res.state === 'denied' && warningBanner) {
+              warningBanner.classList.remove('hidden');
+            }
+          }).catch(() => {});
+        }
+      }
+    }
+
+    function openStandaloneWindow() {
+      try {
+        window.open(window.location.href, '_blank', 'noopener,noreferrer');
+      } catch (e) {
+        window.location.href = window.location.href;
+      }
+    }
+
+    function initTheme() {
+      const htmlEl = document.documentElement;
+      const iconEl = document.getElementById('themeToggleIcon');
+      const toggleBtn = document.getElementById('themeToggleBtn');
+      
+      if (AppState.theme === 'light') {
+        htmlEl.classList.remove('dark');
+        htmlEl.classList.add('light');
+        if (iconEl) iconEl.className = 'fa-solid fa-sun text-xs text-amber-500';
+        if (toggleBtn) toggleBtn.className = 'w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 flex items-center justify-center transition border border-slate-300';
+      } else {
+        htmlEl.classList.remove('light');
+        htmlEl.classList.add('dark');
+        if (iconEl) iconEl.className = 'fa-solid fa-moon text-xs text-amber-400';
+        if (toggleBtn) toggleBtn.className = 'w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 flex items-center justify-center transition border border-slate-700/50';
+      }
+    }
+
+    function toggleTheme() {
+      AppState.theme = AppState.theme === 'dark' ? 'light' : 'dark';
+      setStoredTheme(AppState.theme);
+      initTheme();
+      showToast(AppState.theme === 'dark' ? 'Mode Gelap diaktifkan' : 'Mode Terang diaktifkan', 'info');
+    }
+
+    function initRuntimeIndicator() {
+      const badge = document.getElementById('runtimeModeBadge');
+      if (isGasRuntime) {
+        badge.innerHTML = '<i class="fa-solid fa-cloud text-[8px] mr-1"></i>GAS Native';
+        badge.className = 'text-[9px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30';
+      } else if (AppState.gasEndpoint) {
+        badge.innerHTML = '<i class="fa-brands fa-github text-[8px] mr-1"></i>GitHub Cloud';
+        badge.className = 'text-[9px] font-semibold px-2 py-0.5 rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30';
+      } else {
+        badge.innerHTML = '<i class="fa-solid fa-shield-halved text-[8px] mr-1"></i>Safe Preview';
+      }
+    }
+
+    function initLiveClock() {
+      const clockEl = document.getElementById('liveHeaderClock');
+      const todayEl = document.getElementById('todayDateLabel');
+      const update = () => {
+        const now = new Date();
+        const opts = { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', second: '2-digit' };
+        if (clockEl) clockEl.textContent = now.toLocaleDateString('id-ID', opts) + ' WIB';
+        if (todayEl) todayEl.textContent = now.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+      };
+      update();
+      setInterval(update, 1000);
+    }
+
+    function renderCarouselSlides() {
+      const track = document.getElementById('carouselSlidesTrack');
+      const dots = document.getElementById('carouselDots');
+      const counter = document.getElementById('carouselSlideCounter');
+      if (!track) return;
+
+      track.innerHTML = '';
+      dots.innerHTML = '';
+
+      const total = AppState.carouselSlides.length;
+      if (total === 0) return;
+
+      counter.textContent = `${AppState.currentSlideIdx + 1} / ${total}`;
+
+      AppState.carouselSlides.forEach((slide, idx) => {
+        let diff = (idx - AppState.currentSlideIdx + total) % total;
+        if (diff > total / 2) diff -= total;
+
+        const card = document.createElement('div');
+        card.className = `absolute w-64 h-40 rounded-2xl overflow-hidden shadow-2xl transition-all duration-700 ease-out border border-white/10 flex flex-col justify-end p-3 cursor-pointer`;
+
+        let transform = '';
+        let zIndex = 10;
+        let opacity = 1;
+
+        if (diff === 0) {
+          transform = 'translateX(0%) scale(1.0) rotateY(0deg) translateZ(50px)';
+          zIndex = 20;
+          opacity = 1;
+          card.classList.add('ring-2', 'ring-brand-500/80', 'shadow-brand-500/20');
+        } else if (diff === 1 || (diff < 0 && Math.abs(diff) === total - 1)) {
+          transform = 'translateX(35%) scale(0.85) rotateY(-18deg) translateZ(0px)';
+          zIndex = 10;
+          opacity = 0.55;
+        } else if (diff === -1 || diff === total - 1) {
+          transform = 'translateX(-35%) scale(0.85) rotateY(18deg) translateZ(0px)';
+          zIndex = 10;
+          opacity = 0.55;
+        } else {
+          transform = 'translateX(0%) scale(0.7) translateZ(-100px)';
+          opacity = 0;
+          zIndex = 1;
+        }
+
+        card.style.transform = transform;
+        card.style.zIndex = zIndex;
+        card.style.opacity = opacity;
+
+        card.innerHTML = `
+          <img src="${slide.imageUrl}" alt="${slide.title}" class="absolute inset-0 w-full h-full object-cover">
+          <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/40 to-transparent"></div>
+          <div class="relative z-10">
+            <span class="text-[9px] font-bold text-sky-400 uppercase tracking-wider">Slide ${idx + 1}</span>
+            <h4 class="text-xs font-bold text-white line-clamp-1">${slide.title}</h4>
+            <p class="text-[10px] text-slate-300 line-clamp-1">${slide.description || ''}</p>
+          </div>
+        `;
+
+        card.onclick = () => {
+          AppState.currentSlideIdx = idx;
+          renderCarouselSlides();
+        };
+
+        track.appendChild(card);
+
+        const dot = document.createElement('button');
+        dot.className = `w-2 h-2 rounded-full transition-all ${idx === AppState.currentSlideIdx ? 'w-5 bg-brand-500 shadow-md shadow-brand-500/50' : 'bg-slate-700'}`;
+        dot.onclick = () => {
+          AppState.currentSlideIdx = idx;
+          renderCarouselSlides();
+        };
+        dots.appendChild(dot);
+      });
+    }
+
+    function nextSlide() {
+      AppState.currentSlideIdx = (AppState.currentSlideIdx + 1) % AppState.carouselSlides.length;
+      renderCarouselSlides();
+    }
+
+    function prevSlide() {
+      AppState.currentSlideIdx = (AppState.currentSlideIdx - 1 + AppState.carouselSlides.length) % AppState.carouselSlides.length;
+      renderCarouselSlides();
+    }
+
+    function startCarouselAutoplay() {
+      stopCarouselAutoplay();
+      AppState.carouselAutoplayTimer = setInterval(nextSlide, 4500);
+    }
+
+    function stopCarouselAutoplay() {
+      if (AppState.carouselAutoplayTimer) clearInterval(AppState.carouselAutoplayTimer);
+    }
+
+    async function requestCameraAccess() {
+      const video = document.getElementById('webcamVideo');
+      const fallback = document.getElementById('cameraFallbackOverlay');
+      const statusText = document.getElementById('cameraStatusText');
+      const warningBanner = document.getElementById('iframePermissionWarning');
+
+      try {
+        if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+          const stream = await navigator.mediaDevices.getUserMedia({
+            video: {
+              facingMode: 'user',
+              width: { ideal: 640 },
+              height: { ideal: 640 }
+            },
+            audio: false
+          });
+          AppState.webcamStream = stream;
+          video.srcObject = stream;
+          if (fallback) fallback.classList.add('hidden');
+          if (statusText) statusText.textContent = 'Kamera Wajah Aktif';
+          if (warningBanner) warningBanner.classList.add('hidden');
+        } else {
+          throw new Error('WebRTC mediaDevices tidak didukung browser ini.');
+        }
+      } catch (err) {
+        console.warn('Camera access unavailable:', err.message);
+        if (fallback) fallback.classList.remove('hidden');
+        if (statusText) statusText.textContent = isIframe ? 'Kamera Diblokir Iframe' : 'Simulasi Scanner Siap';
+        if (isIframe && warningBanner) {
+          warningBanner.classList.remove('hidden');
+        }
+      }
+    }
+
+    function restartCamera() {
+      if (AppState.webcamStream) {
+        AppState.webcamStream.getTracks().forEach(t => t.stop());
+      }
+      requestCameraAccess();
+      showToast('Kamera dimuat ulang.', 'info');
+    }
+
+    function setAttendanceMode(mode) {
+      AppState.currentAttendanceMode = mode;
+      const btnMasuk = document.getElementById('btnModeMasuk');
+      const btnPulang = document.getElementById('btnModePulang');
+      const scanLabel = document.getElementById('btnScanLabel');
+
+      if (mode === 'Masuk') {
+        btnMasuk.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md shadow-emerald-500/20';
+        btnPulang.className = 'flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center space-x-1.5';
+        scanLabel.textContent = 'SCAN & REKAM MASUK';
+      } else {
+        btnPulang.className = 'flex-1 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center space-x-1.5 bg-gradient-to-r from-amber-500 to-rose-600 text-white shadow-md shadow-amber-500/20';
+        btnMasuk.className = 'flex-1 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center space-x-1.5';
+        scanLabel.textContent = 'SCAN & REKAM PULANG';
+      }
+    }
+
+    function populateEmployeeSelector() {
+      const select = document.getElementById('employeeSelect');
+      if (!select) return;
+      select.innerHTML = '';
+      AppState.users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.userId;
+        opt.textContent = `${u.nama} — ${u.nip} (${u.divisi})`;
+        select.appendChild(opt);
+      });
+      onEmployeeSelectChange();
+    }
+
+    function onEmployeeSelectChange() {
+      const select = document.getElementById('employeeSelect');
+      const nipLabel = document.getElementById('selectedUserNip');
+      const user = AppState.users.find(u => u.userId === select.value);
+      if (user && nipLabel) {
+        nipLabel.textContent = user.nip;
+      }
+    }
+
+    async function executeFaceScan() {
+      const select = document.getElementById('employeeSelect');
+      const user = AppState.users.find(u => u.userId === select.value) || AppState.users[0];
+      if (!user) {
+        showToast('Pilih karyawan terlebih dahulu.', 'error');
+        return;
+      }
+
+      const video = document.getElementById('webcamVideo');
+      const canvas = document.getElementById('snapshotCanvas');
+      let snapshotDataUrl = '';
+
+      if (AppState.webcamStream && video.videoWidth > 0) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        snapshotDataUrl = canvas.toDataURL('image/jpeg', 0.82);
+      } else {
+        snapshotDataUrl = user.fotoReferensi;
+      }
+
+      const btnScan = document.getElementById('btnCaptureScan');
+      btnScan.disabled = true;
+      btnScan.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-2"></i>MEMVERIFIKASI KE GOOGLE SHEETS...';
+
+      const payload = {
+        userId: user.userId,
+        nip: user.nip,
+        nama: user.nama,
+        mode: AppState.currentAttendanceMode,
+        snapshotBase64: snapshotDataUrl
+      };
+
+      try {
+        const res = await callBackend('recordAttendance', payload);
+        btnScan.disabled = false;
+        setAttendanceMode(AppState.currentAttendanceMode);
+
+        if (res && res.success) {
+          displaySuccessModal(res.nama, res.jam, res.status, snapshotDataUrl);
+          await loadAttendanceLogs();
+        } else {
+          showToast(res ? res.message : 'Presensi gagal dicatat', 'error');
+        }
+      } catch (err) {
+        btnScan.disabled = false;
+        setAttendanceMode(AppState.currentAttendanceMode);
+        showToast('Kesalahan sistem: ' + err.message, 'error');
+      }
+    }
+
+    function displaySuccessModal(nama, time, status, snapshotUrl) {
+      document.getElementById('modalResultName').textContent = nama;
+      document.getElementById('modalResultTime').textContent = time + ' WIB';
+      const statusEl = document.getElementById('modalResultStatus');
+      statusEl.textContent = status;
+      if (status === 'Terlambat') {
+        statusEl.className = 'font-bold text-amber-400';
+      } else {
+        statusEl.className = 'font-bold text-emerald-400';
+      }
+      document.getElementById('modalResultSnapshot').src = snapshotUrl;
+      document.getElementById('successScanModal').classList.remove('hidden');
+    }
+
+    function closeSuccessModal() {
+      document.getElementById('successScanModal').classList.add('hidden');
+    }
+
+    async function loadAttendanceLogs() {
+      const container = document.getElementById('attendanceLogsList');
+      const res = await callBackend('getTodayAttendance');
+      if (res && res.success && Array.isArray(res.data)) {
+        AppState.attendanceLogs = res.data;
+        renderAttendanceLogs();
+      } else {
+        renderAttendanceLogs();
+      }
+    }
+
+    function renderAttendanceLogs() {
+      const container = document.getElementById('attendanceLogsList');
+      if (!container) return;
+
+      if (AppState.attendanceLogs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-10 rounded-2xl bg-slate-900/50 border border-slate-800 p-4">
+            <i class="fa-solid fa-clipboard-user text-2xl text-slate-600 mb-2"></i>
+            <p class="text-xs font-semibold text-slate-300">Belum Ada Presensi Hari Ini</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Lakukan scan wajah di tab Scan untuk mencatat absensi.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = '';
+      AppState.attendanceLogs.forEach(log => {
+        const isLate = log.Status === 'Terlambat';
+        const card = document.createElement('div');
+        card.className = 'scroll-card p-3 rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-between shadow-sm';
+        card.innerHTML = `
+          <div class="flex items-center space-x-3">
+            <div class="w-11 h-11 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 shrink-0">
+              <img src="${log.FotoSnapshot || 'https://placehold.co/100x100/1e293b/94a3b8?text=Face'}" class="w-full h-full object-cover" onerror="this.src='https://placehold.co/100x100/1e293b/94a3b8?text=User'">
+            </div>
+            <div>
+              <h4 class="text-xs font-bold text-slate-100">${log.Nama}</h4>
+              <div class="flex items-center space-x-2 text-[10px] text-slate-400 mt-0.5">
+                <span><i class="fa-regular fa-clock mr-1 text-sky-400"></i>${log.WaktuMasuk !== '-' ? log.WaktuMasuk : log.WaktuPulang}</span>
+                <span>•</span>
+                <span class="font-medium text-slate-400">${log.WaktuMasuk !== '-' ? 'Masuk' : 'Pulang'}</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${isLate ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30' : 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'}">
+              ${log.Status}
+            </span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+      initScrollAnimations();
+    }
+
+    async function checkAdminSession() {
+      if (AppState.adminToken) {
+        const res = await callBackend('verifySession', { token: AppState.adminToken });
+        if (res && res.valid) {
+          showAdminDashboard(res.session);
+        } else {
+          hideAdminDashboard();
+        }
+      } else {
+        hideAdminDashboard();
+      }
+    }
+
+    async function handleAdminLogin(e) {
+      e.preventDefault();
+      const u = document.getElementById('adminUsernameInput').value.trim();
+      const p = document.getElementById('adminPasswordInput').value.trim();
+      const btn = document.getElementById('btnAdminSubmit');
+
+      btn.disabled = true;
+      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin mr-1"></i>Memverifikasi...';
+
+      try {
+        const res = await callBackend('login', { username: u, password: p });
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fa-solid fa-arrow-right-to-bracket text-xs mr-1"></i><span>Masuk ke Dashboard</span>';
+
+        if (res && res.success) {
+          AppState.adminToken = res.token;
+          sessionStorage.setItem('facelog_admin_token', res.token);
+          showAdminDashboard({ username: res.username, role: res.role });
+          showToast('Selamat datang Admin FaceLog.', 'success');
+        } else {
+          showToast(res ? res.message : 'Username atau password salah', 'error');
+        }
+      } catch (err) {
+        btn.disabled = false;
+        btn.innerHTML = '<span>Masuk ke Dashboard</span>';
+        showToast('Kesalahan login: ' + err.message, 'error');
+      }
+    }
+
+    function quickFillAdminLogin() {
+      document.getElementById('adminUsernameInput').value = 'admin';
+      document.getElementById('adminPasswordInput').value = '123';
+      showToast('Kredensial default admin diisi.', 'info');
+    }
+
+    function togglePasswordVisibility(inputId, iconId) {
+      const input = document.getElementById(inputId);
+      const icon = document.getElementById(iconId);
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.className = 'fa-solid fa-eye text-sky-400';
+      } else {
+        input.type = 'password';
+        icon.className = 'fa-solid fa-eye-slash';
+      }
+    }
+
+    async function showAdminDashboard(session) {
+      document.getElementById('adminPreLoginCard').classList.add('hidden');
+      document.getElementById('adminDashboardView').classList.remove('hidden');
+      document.getElementById('adminSessionUsername').textContent = (session.username || 'admin') + ' (Admin)';
+      
+      // Sinkronkan formulir konfigurasi settings dengan endpoint aktif
+      const epInput = document.getElementById('setGasEndpointUrl');
+      if (epInput) epInput.value = AppState.gasEndpoint;
+
+      await loadAdminDashboardMetrics();
+      renderAdminUsersList();
+      renderAdminCarouselList();
+    }
+
+    function hideAdminDashboard() {
+      document.getElementById('adminPreLoginCard').classList.remove('hidden');
+      document.getElementById('adminDashboardView').classList.add('hidden');
+    }
+
+    async function handleAdminLogout() {
+      if (AppState.adminToken) {
+        await callBackend('logout', { token: AppState.adminToken });
+      }
+      AppState.adminToken = null;
+      sessionStorage.removeItem('facelog_admin_token');
+      hideAdminDashboard();
+      showToast('Anda telah logout dari Admin.', 'info');
+    }
+
+    function setAdminTab(tabName) {
+      ['users', 'carousel', 'location', 'settings'].forEach(t => {
+        const view = document.getElementById(`adminSub-${t}`);
+        const btn = document.getElementById(`btnSub${t.charAt(0).toUpperCase() + t.slice(1)}`);
+        if (view) view.classList.add('hidden');
+        if (btn) btn.className = 'px-3 py-1.5 rounded-xl bg-slate-800 text-slate-300 shrink-0';
+      });
+
+      const targetView = document.getElementById(`adminSub-${tabName}`);
+      const targetBtn = document.getElementById(`btnSub${tabName.charAt(0).toUpperCase() + tabName.slice(1)}`);
+      if (targetView) targetView.classList.remove('hidden');
+      if (targetBtn) targetBtn.className = 'px-3 py-1.5 rounded-xl bg-brand-600 text-white shrink-0';
+    }
+
+    async function loadAdminDashboardMetrics() {
+      const res = await callBackend('getDashboard', { token: AppState.adminToken });
+      if (res && res.success && res.data) {
+        document.getElementById('kpiTotalUsers').textContent = res.data.totalUsers || AppState.users.length;
+        document.getElementById('kpiHadirToday').textContent = res.data.hadirHariIni || 0;
+        document.getElementById('kpiTepatWaktu').textContent = res.data.tepatWaktu || 0;
+        document.getElementById('kpiTerlambat').textContent = res.data.terlambat || 0;
+      } else {
+        const totalU = AppState.users.length;
+        const hadirT = AppState.attendanceLogs.length;
+        const tepatT = AppState.attendanceLogs.filter(l => l.Status === 'Tepat Waktu').length;
+        const telatT = AppState.attendanceLogs.filter(l => l.Status === 'Terlambat').length;
+
+        document.getElementById('kpiTotalUsers').textContent = totalU;
+        document.getElementById('kpiHadirToday').textContent = hadirT;
+        document.getElementById('kpiTepatWaktu').textContent = tepatT;
+        document.getElementById('kpiTerlambat').textContent = telatT;
+      }
+    }
+
+    function renderAdminUsersList() {
+      const container = document.getElementById('adminUsersList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      AppState.users.forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs';
+        item.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            <img src="${u.fotoReferensi}" class="w-9 h-9 rounded-xl object-cover border border-slate-700">
+            <div>
+              <p class="font-bold text-slate-100">${u.nama}</p>
+              <p class="text-[10px] text-slate-400 font-mono">${u.nip} • ${u.divisi}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <button onclick="editUser('${u.userId}')" class="w-7 h-7 rounded-lg bg-slate-700 text-slate-300 flex items-center justify-center hover:text-white"><i class="fa-solid fa-pen text-[10px]"></i></button>
+            <button onclick="deleteUserPrompt('${u.userId}')" class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-500/30"><i class="fa-solid fa-trash text-[10px]"></i></button>
+          </div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function openModalUserForm(userId = '') {
+      document.getElementById('formUserId').value = userId;
+      if (userId) {
+        const u = AppState.users.find(x => x.userId === userId);
+        if (u) {
+          document.getElementById('userModalTitle').textContent = 'Edit Data Karyawan';
+          document.getElementById('formUserNama').value = u.nama;
+          document.getElementById('formUserNip').value = u.nip;
+          document.getElementById('formUserDivisi').value = u.divisi;
+          document.getElementById('formUserFoto').value = u.fotoReferensi;
+        }
+      } else {
+        document.getElementById('userModalTitle').textContent = 'Tambah Karyawan Baru';
+        document.getElementById('userForm').reset();
+      }
+      document.getElementById('userModal').classList.remove('hidden');
+    }
+
+    function closeUserModal() {
+      document.getElementById('userModal').classList.add('hidden');
+    }
+
+    async function handleSaveUser(e) {
+      e.preventDefault();
+      const id = document.getElementById('formUserId').value;
+      const nama = document.getElementById('formUserNama').value.trim();
+      const nip = document.getElementById('formUserNip').value.trim();
+      const divisi = document.getElementById('formUserDivisi').value.trim();
+      const foto = document.getElementById('formUserFoto').value.trim() || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80';
+
+      const userObj = { userId: id, nama, nip, divisi, fotoReferensi: foto, status: 'Active' };
+
+      const res = await callBackend('saveUser', { token: AppState.adminToken, userData: userObj });
+      if (res && res.success) {
+        showToast(res.message, 'success');
+      } else {
+        showToast('Tersimpan di antrean aplikasi', 'info');
+      }
+
+      closeUserModal();
+      await syncAllDataFromBackend();
+      renderAdminUsersList();
+      loadAdminDashboardMetrics();
+    }
+
+    async function deleteUserPrompt(userId) {
+      const res = await callBackend('deleteUser', { token: AppState.adminToken, userId });
+      if (res && res.success) {
+        showToast(res.message, 'info');
+      }
+      AppState.users = AppState.users.filter(x => x.userId !== userId);
+      populateEmployeeSelector();
+      renderAdminUsersList();
+      loadAdminDashboardMetrics();
+    }
+
+    function editUser(userId) {
+      openModalUserForm(userId);
+    }
+
+    function renderAdminCarouselList() {
+      const container = document.getElementById('adminCarouselList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      AppState.carouselSlides.forEach(slide => {
+        const card = document.createElement('div');
+        card.className = 'p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 flex items-center justify-between text-xs';
+        card.innerHTML = `
+          <div class="flex items-center space-x-2.5">
+            <img src="${slide.imageUrl}" class="w-12 h-9 rounded-lg object-cover border border-slate-700">
+            <div>
+              <p class="font-bold text-slate-100 line-clamp-1">${slide.title}</p>
+              <p class="text-[10px] text-slate-400">Urutan: ${slide.order} • ${slide.status}</p>
+            </div>
+          </div>
+          <div class="flex items-center space-x-1.5">
+            <button onclick="editCarousel('${slide.id}')" class="w-7 h-7 rounded-lg bg-slate-700 text-slate-300 flex items-center justify-center hover:text-white"><i class="fa-solid fa-pen text-[10px]"></i></button>
+            <button onclick="deleteCarousel('${slide.id}')" class="w-7 h-7 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center hover:bg-rose-500/30"><i class="fa-solid fa-trash text-[10px]"></i></button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function openModalCarouselForm(slideId = '') {
+      document.getElementById('formCarouselId').value = slideId;
+      if (slideId) {
+        const s = AppState.carouselSlides.find(x => x.id === slideId);
+        if (s) {
+          document.getElementById('carouselModalTitle').textContent = 'Edit Slide Carousel';
+          document.getElementById('formCarouselSource').value = s.imageSource || 'url';
+          document.getElementById('formCarouselUrl').value = s.imageUrl;
+          document.getElementById('formCarouselTitle').value = s.title;
+          document.getElementById('formCarouselDesc').value = s.description;
+          document.getElementById('formCarouselOrder').value = s.order;
+          document.getElementById('formCarouselStatus').value = s.status;
+          toggleCarouselSourceType();
+        }
+      } else {
+        document.getElementById('carouselModalTitle').textContent = 'Tambah Slide Carousel';
+        document.getElementById('carouselForm').reset();
+        toggleCarouselSourceType();
+      }
+      document.getElementById('carouselModal').classList.remove('hidden');
+    }
+
+    function closeCarouselModal() {
+      document.getElementById('carouselModal').classList.add('hidden');
+    }
+
+    function toggleCarouselSourceType() {
+      const src = document.getElementById('formCarouselSource').value;
+      if (src === 'upload') {
+        document.getElementById('carouselUrlField').classList.add('hidden');
+        document.getElementById('carouselUploadField').classList.remove('hidden');
+      } else {
+        document.getElementById('carouselUrlField').classList.remove('hidden');
+        document.getElementById('carouselUploadField').classList.add('hidden');
+      }
+    }
+
+    function previewUploadImage(input) {
+      if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          document.getElementById('formCarouselUrl').value = e.target.result;
+        };
+        reader.readAsDataURL(input.files[0]);
+      }
+    }
+
+    async function handleSaveCarousel(e) {
+      e.preventDefault();
+      const id = document.getElementById('formCarouselId').value;
+      const srcType = document.getElementById('formCarouselSource').value;
+      const imgUrl = document.getElementById('formCarouselUrl').value.trim();
+      const title = document.getElementById('formCarouselTitle').value.trim();
+      const desc = document.getElementById('formCarouselDesc').value.trim();
+      const order = parseInt(document.getElementById('formCarouselOrder').value, 10) || 1;
+      const status = document.getElementById('formCarouselStatus').value;
+
+      if (!imgUrl) {
+        showToast('Pilih gambar atau masukkan URL gambar.', 'error');
+        return;
+      }
+
+      const slideObj = { id: id, imageSource: srcType, imageUrl: imgUrl, title, description: desc, order, status };
+      const res = await callBackend('saveSlide', { token: AppState.adminToken, slideData: slideObj });
+      if (res && res.success) {
+        showToast(res.message, 'success');
+      }
+
+      closeCarouselModal();
+      await syncAllDataFromBackend();
+      renderAdminCarouselList();
+    }
+
+    async function deleteCarousel(slideId) {
+      const res = await callBackend('deleteSlide', { token: AppState.adminToken, slideId });
+      if (res && res.success) {
+        showToast(res.message, 'info');
+      }
+      AppState.carouselSlides = AppState.carouselSlides.filter(x => x.id !== slideId);
+      renderCarouselSlides();
+      renderAdminCarouselList();
+    }
+
+    function editCarousel(slideId) {
+      openModalCarouselForm(slideId);
+    }
+
+    async function saveLocationForm(e) {
+      e.preventDefault();
+      const addr = document.getElementById('locAddressInput').value.trim();
+      const lat = parseFloat(document.getElementById('locLatInput').value);
+      const lng = parseFloat(document.getElementById('locLngInput').value);
+
+      const locData = { address: addr, latitude: lat, longitude: lng, status: 'Active' };
+      const res = await callBackend('saveLocation', { token: AppState.adminToken, locationData: locData });
+      
+      AppState.location.address = addr;
+      AppState.location.latitude = lat;
+      AppState.location.longitude = lng;
+
+      updateMapsEmbed(lat, lng, addr);
+      showToast(res && res.success ? res.message : 'Lokasi maps berhasil diperbarui.', 'success');
+    }
+
+    function updateMapsEmbed(lat, lng, addr) {
+      const iframe = document.getElementById('googleMapsIframe');
+      const snippet = document.getElementById('mapAddressSnippet');
+      const extLink = document.getElementById('mapExternalLink');
+
+      if (iframe) iframe.src = `https://maps.google.com/maps?q=${lat},${lng}&hl=id&z=15&output=embed`;
+      if (snippet) snippet.textContent = addr;
+      if (extLink) extLink.href = `https://maps.google.com/?q=${lat},${lng}`;
+    }
+
+    function useCurrentGeolocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          pos => {
+            document.getElementById('locLatInput').value = pos.coords.latitude.toFixed(6);
+            document.getElementById('locLngInput').value = pos.coords.longitude.toFixed(6);
+            showToast('Koordinat GPS smartphone diperoleh.', 'success');
+          },
+          err => {
+            showToast('Izin GPS tidak diberikan: ' + err.message, 'error');
+          }
+        );
+      } else {
+        showToast('Geolocation tidak didukung.', 'error');
+      }
+    }
+
+    async function saveGeneralSettings(e) {
+      e.preventDefault();
+      const st = document.getElementById('setStartTime').value;
+      const et = document.getElementById('setEndTime').value;
+      const tol = document.getElementById('setTolerance').value;
+      const endpoint = document.getElementById('setGasEndpointUrl').value.trim();
+
+      AppState.settings.work_start_time = st;
+      AppState.settings.work_end_time = et;
+      AppState.settings.late_tolerance_minutes = tol;
+      AppState.gasEndpoint = endpoint || DEFAULT_GAS_ENDPOINT;
+
+      localStorage.setItem('facelog_gas_endpoint', AppState.gasEndpoint);
+
+      const newSettings = {
+        work_start_time: st,
+        work_end_time: et,
+        late_tolerance_minutes: tol
+      };
+
+      const res = await callBackend('saveSettings', { token: AppState.adminToken, newSettings });
+      initRuntimeIndicator();
+      showToast(res && res.success ? res.message : 'Pengaturan jam kerja disimpan.', 'success');
+    }
+
+    function switchTab(tabId) {
+      AppState.activeTab = tabId;
+      ['scan', 'riwayat', 'admin'].forEach(t => {
+        const view = document.getElementById(`tab-${t}`);
+        const btn = document.getElementById(`nav-btn-${t}`);
+        if (view) view.classList.add('hidden');
+        if (btn) {
+          btn.className = 'flex flex-col items-center py-1 transition group text-slate-400 hover:text-slate-200';
+          btn.querySelector('div').className = 'w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-slate-800';
+        }
+      });
+
+      const activeView = document.getElementById(`tab-${tabId}`);
+      const activeBtn = document.getElementById(`nav-btn-${tabId}`);
+      if (activeView) activeView.classList.remove('hidden');
+      if (activeBtn) {
+        activeBtn.className = 'flex flex-col items-center py-1 transition group text-brand-400';
+        activeBtn.querySelector('div').className = 'w-10 h-7 rounded-xl flex items-center justify-center transition group-hover:bg-brand-500/10';
+      }
+
+      if (tabId === 'scan' && !AppState.webcamStream) {
+        requestCameraAccess();
+      }
+
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById('toastNotification');
+      const msg = document.getElementById('toastMessage');
+      const icon = document.getElementById('toastIcon');
+
+      msg.textContent = message;
+      if (type === 'success') {
+        icon.className = 'fa-solid fa-circle-check text-emerald-400';
+      } else if (type === 'error') {
+        icon.className = 'fa-solid fa-circle-exclamation text-rose-400';
+      } else {
+        icon.className = 'fa-solid fa-circle-info text-sky-400';
+      }
+
+      toast.classList.remove('opacity-0', '-translate-y-4');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', '-translate-y-4');
+      }, 3000);
+    }
+
+    function initScrollAnimations() {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        document.querySelectorAll('.scroll-card').forEach(el => el.classList.add('is-visible'));
+        return;
+      }
+
+      const observer = new IntersectionObserver((entries, obs) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            obs.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.1,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      document.querySelectorAll('.scroll-card:not(.is-visible)').forEach(el => {
+        observer.observe(el);
+      });
+    }
+  </script>
+</body>
+</html>
